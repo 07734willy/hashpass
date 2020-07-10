@@ -1,6 +1,7 @@
 from hashlib import sha512
 from string import ascii_lowercase, ascii_uppercase, digits
 from getpass import getpass
+from time import sleep
 
 symbols = "!@#$%^&*"
 characters = ascii_lowercase + ascii_uppercase + digits + symbols
@@ -56,11 +57,10 @@ def hash_viz(password):
 		value, residue = divmod(value, len(alphabet))
 		words.append(alphabet[residue])
 	
-	return " ".join(words)
+	return " ".join(words).upper()
 
 def print_banner():
-	banner = r"""
-  _    _           _     _____
+	banner = r"""  _    _           _     _____
  | |  | |         | |   |  __ \
  | |__| | __ _ ___| |__ | |__) |_ _ ___ ___
  |  __  |/ _` / __| '_ \|  ___/ _` / __/ __|
@@ -92,9 +92,10 @@ def main():
 	print("HashPass: " + hashpass + "\n")
 
 	if copy_to_clip(hashpass):
-		input("HashPass copied to clipboard. Press any key to exit.")
+		print("HashPass copied to clipboard. Exiting in 10 seconds.")
+		sleep(10)
 	else:
-		input("Once you have copied the HashPass, press any key to exit.")
+		input("Press any key to exit.")
 
 if __name__ == "__main__":
 	main()
