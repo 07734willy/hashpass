@@ -1,10 +1,19 @@
 from hashlib import sha512
 from string import ascii_lowercase, ascii_uppercase, digits
 from getpass import getpass
+from math import log
+from argparse import ArgumentParser
 from time import sleep
 
-symbols = "!@#$%^&*"
-characters = ascii_lowercase + ascii_uppercase + digits + symbols
+SYMBOLS = "!@#$%^&*"
+CHARACTERS = ascii_lowercase + ascii_uppercase + digits + SYMBOLS
+
+NOUNS1 = ['fire', 'queen', 'blog', 'tax', 'concrete', 'glove']
+NOUNS2 = ['army', 'color', 'duck', 'morning', 'fear', 'train']
+NOUNS3 = ['town', 'library', 'existence', 'pipe', 'instrument', 'army']
+
+DEFAULT_LENGTH = 16
+CODE_EXPOSURE = len(NOUNS1) * len(NOUNS2) * len(NOUNS3)
 
 def escape(text):
 	text = text.replace("\\", "\\\\")
@@ -17,25 +26,26 @@ def hash_components(password, username, domain):
 	components = []
 	components.append(escape(password))
 	components.append(escape(username))
-	components.append(escape(domain))
+	components.append(escape(domain.lower()))
 	
 	text = "|".join(components)
 	return sha512(text.encode("utf-8")).digest()
 
-def hash_to_pass(hash, size):
+def hash_to_pass(hash, size=DEFAULT_LENGTH):
 	# takes a hash, and forms a `size`-char long password
 	# there will be at least one lowercase, uppercase, digit, and symbol
-	assert size <= 56
+	assert size <= log(2 ** (8 * len(hash)) // CODE_EXPOSURE, len(CHARACTERS)) # roughly 82
 
 	value = int.from_bytes(hash, byteorder="little")
+	value //= CODE_EXPOSURE
 
 	result = []
 	for _ in range(size):
-		value, residue = divmod(value, len(characters))
-		result.append(characters[residue])
+		value, residue = divmod(value, len(CHARACTERS))
+		result.append(CHARACTERS[residue])
 	
 	indices = list(range(size))
-	for alphabet in (ascii_lowercase, ascii_uppercase, digits, symbols):
+	for alphabet in (ascii_lowercase, ascii_uppercase, digits, SYMBOLS):
 		value, index = divmod(value, len(indices))
 		value, residue = divmod(value, len(alphabet))
 		result[indices.pop(index)] = alphabet[residue]
@@ -48,12 +58,8 @@ def hash_viz(password):
 	hash = sha512(password.encode("utf-8")).digest()
 	value = int.from_bytes(hash, byteorder="little")
 
-	nouns1 = ['fire', 'queen', 'blog', 'tax', 'concrete', 'glove']
-	nouns2 = ['army', 'color', 'duck', 'morning', 'fear', 'train']
-	nouns3 = ['town', 'library', 'existence', 'pipe', 'instrument', 'army']
-
 	words = []
-	for alphabet in (nouns1, nouns2, nouns3):
+	for alphabet in (NOUNS1, NOUNS2, NOUNS3):
 		value, residue = divmod(value, len(alphabet))
 		words.append(alphabet[residue])
 	
@@ -78,9 +84,9 @@ def copy_to_clip(text):
 		return False
 	return True
 
-def main():
+def prompt_interactive():
 	print_banner()
-	domain = input("Domain:\n> ").lower()
+	domain = input("Domain:\n> ")
 	username = input("Username:\n> ")
 	password = getpass("Password:\n> ")
 
@@ -88,7 +94,7 @@ def main():
 	print("\nCode words: \"" + code_words + "\"")
 
 	hash = hash_components(password, username, domain)
-	hashpass = hash_to_pass(hash, 16)
+	hashpass = hash_to_pass(hash)
 	print("HashPass: " + hashpass + "\n")
 
 	if copy_to_clip(hashpass):
@@ -96,6 +102,27 @@ def main():
 		sleep(10)
 	else:
 		input("Press any key to exit.")
+
+def prompt_silent():
+	domain = input()
+	username = input()
+	password = getpass("")
+		
+	hash = hash_components(password, username, domain)
+	hashpass = hash_to_pass(hash)
+
+	print(hashpass)
+
+def main():
+	parser = ArgumentParser()
+	parser.add_argument('-s', '--silent', action='store_true')
+	args = parser.parse_args()
+
+	if args.silent:
+		prompt_silent()
+	else:
+		prompt_interactive()
+
 
 if __name__ == "__main__":
 	main()
