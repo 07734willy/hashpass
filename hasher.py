@@ -4,6 +4,7 @@ from getpass import getpass
 from math import log
 from argparse import ArgumentParser
 from time import sleep
+from contextlib import suppress
 
 SYMBOLS = "!@#$%^&*"
 CHARACTERS = ascii_lowercase + ascii_uppercase + digits + SYMBOLS
@@ -66,7 +67,8 @@ def hash_viz(password):
 	return " ".join(words).upper()
 
 def print_banner():
-	banner = r"""  _    _           _     _____
+	banner = r"""\
+  _    _           _     _____
  | |  | |         | |   |  __ \
  | |__| | __ _ ___| |__ | |__) |_ _ ___ ___
  |  __  |/ _` / __| '_ \|  ___/ _` / __/ __|
@@ -98,10 +100,11 @@ def prompt_interactive():
 	print("HashPass: " + hashpass + "\n")
 
 	if copy_to_clip(hashpass):
-		print("HashPass copied to clipboard. Exiting in 10 seconds.")
-		sleep(10)
-	else:
-		input("Press any key to exit.")
+		print("HashPass copied to clipboard.")
+
+	print("Exiting in 10 seconds.")
+	sleep(10)
+	
 
 def prompt_silent():
 	domain = input()
@@ -118,10 +121,13 @@ def main():
 	parser.add_argument('-s', '--silent', action='store_true')
 	args = parser.parse_args()
 
-	if args.silent:
-		prompt_silent()
-	else:
-		prompt_interactive()
+	try:
+		if args.silent:
+			prompt_silent()
+		else:
+			prompt_interactive()
+	except KeyboardInterrupt:
+		print("")
 
 
 if __name__ == "__main__":
